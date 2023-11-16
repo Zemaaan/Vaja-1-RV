@@ -1,7 +1,7 @@
 import random
-
 import cv2
 import keras
+import numpy
 import numpy as np
 import tensorflow
 from keras.layers import Dense
@@ -11,8 +11,11 @@ from keras.layers import MaxPool2D
 from keras.layers import Add
 from keras.losses import MeanSquaredError
 from keras.activations import relu
+from tensorflow.keras.utils import split_dataset
 from os.path import isfile, join
 from os import listdir
+import copy
+RazrediKlasifikacija = [-16, -14.4, -12.9, -11.4, -9.60, -8.3, -6.8, -5.3, -3.8, -2.3, -0.8,  0.8, 2.3, 3.8, 5.3, 6.8, 8.3, 9.9, 11.43, 12.9, 14.4, 16.0]
 
 # Pitati asistenta za pomoć s tom greškom
 # Preuzeti datoteke i napraviti učno množico
@@ -32,9 +35,7 @@ NumpySeznamSlikNormalnih = []
 
 Direktorij = "E:/Sivinske2014/"
 SeznamDatotek = [f for f in listdir(Direktorij) if isfile(join(Direktorij, f))]
-print(len(SeznamDatotek))
 SeznamPoti = [Direktorij + f for f in SeznamDatotek]
-
 
 def UstvariOneHotVektor(SeznamZamikov):
 	Matrika = [[0] * 21] * 8  # matrika velikost 8 x 21
@@ -44,12 +45,17 @@ def UstvariOneHotVektor(SeznamZamikov):
 			if RazrediKlasifikacija[i] < SeznamZamikov[j] < RazrediKlasifikacija[i + 1]:
 				OneHotVektor = [0] * 21
 				OneHotVektor[i] = 1
-				break
 			Matrika[j] = OneHotVektor
-	print(Matrika)
+		# print(Matrika[j])
+	return Matrika
 
+features = []
+labels = []
 
-for PotDoSlike in SeznamPoti:
+features = np.array(features)
+labels = np.array(labels)
+
+for PotDoSlike in SeznamPoti[:10]:
 	RGBSivinskaSlika = cv2.imread(PotDoSlike)
 	# SivinskaSlika = cv2.cvtColor(SivinskaSlika, cv2.COLOR_BGR2GRAY)
 	NumpySeznamSlikNormalnih.append(RGBSivinskaSlika)
@@ -64,17 +70,17 @@ for PotDoSlike in SeznamPoti:
 	Y3Zamik = random.randint(-16, 16)
 	Y4Zamik = random.randint(-16, 16)
 
-	K1X = random.randint(16, 128)  # TODO: je nujno 32 zaradi predznaka/ intervala [-16,16], ali je 16 dovolj.
-	K1Y = random.randint(16, 128)
+	K1X = random.randint(16, 150)  # TODO: je nujno 32 zaradi predznaka/ intervala [-16,16], ali je 16 dovolj.
+	K1Y = random.randint(16, 150)
 
 	K2X = K1X + 64
 	K2Y = K1Y
 
-	K3X = K1X
-	K3Y = K1Y + 64
+	K3X = K2X
+	K3Y = K2Y + 64
 
-	K4X = K1X + 64
-	K4Y = K1Y + 64
+	K4X = K3X - 64
+	K4Y = K3Y
 
 	N1X = K1X + X1Zamik
 	N1Y = K1Y + Y1Zamik
@@ -88,7 +94,7 @@ for PotDoSlike in SeznamPoti:
 	N4X = K4X + X4Zamik
 	N4Y = K4Y + Y4Zamik
 
-	block = RGBSivinskaSlika[K1Y:K1Y + 64, K1X:K1X + 64]
+	block = RGBSivinskaSlika[K1X:K1X + 64, K1Y:K1Y + 64]
 
 	RGBSivinskaSlika[N1X][N1Y] = RGBSivinskaSlika[K1X][K1Y]
 	RGBSivinskaSlika[N2X][N2Y] = RGBSivinskaSlika[K2X][K2Y]
@@ -97,29 +103,65 @@ for PotDoSlike in SeznamPoti:
 
 	# Display or save the extracted block as needed
 
-	H, status = cv2.findHomography(np.array([(K1X, K1Y), (K2X, K2Y), (K3X, K3Y), (K4X, K4Y)]), np.array([(N1X, N1Y), (N2X, N2Y), (N3X, N3Y), (N4X, N4Y)]))
+	H, status = cv2.findHomography(np.array([(K1X, K1Y), (K2X, K2Y), (K3X, K3Y), (K4X, K4Y)]), np.array([(N1X, N1Y), (N2X, N2Y), (N3X, N3Y), (N4X, N4Y)]))  # TODO: Manjka slika
 
 	InverznaMatrika = np.linalg.inv(H)
-	warped_image = cv2.warpPerspective(RGBSivinskaSlika, InverznaMatrika, (320, 240))
+	warped_image = cv2.warpPerspective(RGBSivinskaSlika, InverznaMatrika, (320, 240))  # TODO: H^-1 ali enostavno H za prvo homografijo?
 
-	cv2.rectangle(RGBSivinskaSlika, (K1X, K1Y), (K4X, K4Y), (255, 0, 0), 1)
-	cv2.rectangle(RGBSivinskaSlika, (N1X, N1Y), (N4X, N4Y), (0, 0, 255), 1)
-	KopijaZaRisanje = np.array(RGBSivinskaSlika)
-	cv2.imshow('Zamik vizualizacija', RGBSivinskaSlika)
-	cv2.imshow('Vhod v NN', warped_image)
-	SkupnaSlika = np.concatenate((RGBSivinskaSlika, warped_image), axis=0)
-	# SivinskaSlika = cv2.cvtColor(SivinskaSlika, cv2.COLOR_BGR2GRAY)
-	SivinskaSlika = cv2.cvtColor(RGBSivinskaSlika, cv2.COLOR_BGR2GRAY)
-	SivinskaSlika = tensorflow.expand_dims(SivinskaSlika, axis=0)
-	SivinskaSlika = tensorflow.expand_dims(SivinskaSlika, axis=0)
-	# print(SkupnaSlika.shape)
-	# print('------------------------')
+	SlikaZaBarvanjePopacana = copy.deepcopy(warped_image)
+	SlikaZaBarvanjeOriginalna = copy.deepcopy(RGBSivinskaSlika)
+
+	cv2.line(SlikaZaBarvanjeOriginalna, (K1X, K1Y), (K2X, K2Y), (255, 0, 0), 1)  # rdeca je zamik, modra je original
+	cv2.line(SlikaZaBarvanjeOriginalna, (K2X, K2Y), (K3X, K3Y), (255, 0, 0), 1)
+	cv2.line(SlikaZaBarvanjeOriginalna, (K3X, K3Y), (K4X, K4Y), (255, 0, 0), 1)
+	cv2.line(SlikaZaBarvanjeOriginalna, (K4X, K4Y), (K1X, K1Y), (255, 0, 0), 1)
+
+	cv2.line(SlikaZaBarvanjeOriginalna, (N1X, N1Y), (N2X, N2Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjeOriginalna, (N2X, N2Y), (N3X, N3Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjeOriginalna, (N3X, N3Y), (N4X, N4Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjeOriginalna, (N4X, N4Y), (N1X, N1Y), (0, 0, 255), 1)
+	# matplotlib
+
+	cv2.line(SlikaZaBarvanjePopacana, (N1X, N1Y), (N2X, N2Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (N2X, N2Y), (N3X, N3Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (N3X, N3Y), (N4X, N4Y), (0, 0, 255), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (N4X, N4Y), (N1X, N1Y), (0, 0, 255), 1)
+
+	cv2.line(SlikaZaBarvanjePopacana, (K1X, K1Y), (K2X, K2Y), (255, 0, 0), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (K2X, K2Y), (K3X, K3Y), (255, 0, 0), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (K3X, K3Y), (K4X, K4Y), (255, 0, 0), 1)
+	cv2.line(SlikaZaBarvanjePopacana, (K4X, K4Y), (K1X, K1Y), (255, 0, 0), 1)
+
+	VhodNormalnaSlika = cv2.cvtColor(RGBSivinskaSlika, cv2.COLOR_BGR2GRAY)
+	VhodPopacanaSlika = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
+
+	VhodNormalnaSlika = VhodNormalnaSlika[K1X:K1X + 64, K1Y:K1Y + 64]
+	VhodPopacanaSlika = VhodPopacanaSlika[K1X:K1X + 64, K1Y:K1Y + 64]
+
+	# VhodNormalnaSlika = cv2.resize(VhodNormalnaSlika, (320, 240), cv2.INTER_LINEAR)
+	# VhodPopacanaSlika = cv2.resize(VhodPopacanaSlika, (320, 240), cv2.INTER_LINEAR)
+
+	cv2.imshow('Vhod v NN - Normalna', SlikaZaBarvanjeOriginalna)
+	cv2.imshow('Vhod v NN - Popacana', SlikaZaBarvanjePopacana)
+
+	SkupnaSlika = np.concatenate((VhodNormalnaSlika, VhodPopacanaSlika), 1)  # SivinskaSlika = cv2.cvtColor(SivinskaSlika, cv2.COLOR_BGR2GRAY)
+	SkupnaSlika = tensorflow.reshape(SkupnaSlika, [64, 64, 2])
+
+	UcnaMatrika = UstvariOneHotVektor(SeznamZamikov=[X1Zamik, Y1Zamik, X2Zamik, Y2Zamik, X3Zamik, Y3Zamik, X4Zamik, Y4Zamik])
+
+	np.append(features, SkupnaSlika)
+	np.append(labels, UcnaMatrika)
+
+
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
 
 	# im_out = cv2.warpPerspective(SivinskaSlika, h, (im_dst.shape[1], im_dst.shape[0]))
 
-inputShape = (320, 240, 1)
+
+
+print(features.shape)
+inputShape = (64, 64, 2)
 
 VhodPrvaVeja = keras.layers.Input(shape=inputShape)  # 1. Resnet blok
 PolnoPovezanSlojKlasifikacija = Dense(168)(VhodPrvaVeja)
@@ -218,12 +260,16 @@ PolnoPovezanSlojRegresija = Dense(8)(KoncniSestevek8)
 
 # klasifikacijska glava
 
-RazrediKlasifikacija = [-16, -14.4, -12.9, -11.4, -9.60, -8.3, -6.8, -5.3, -3.8, -2.3, -0.8,  0.8, 2.3, 3.8, 5.3, 6.8, 8.3, 9.9, 11.43, 12.9, 14.4, 16.0]
+
 model = keras.Model(
 	inputs=[VhodPrvaVeja],
 	outputs=[PolnoPovezanSloj],
 )
 
-model.build(input_shape=(320, 240, 1))
+model.build(input_shape=(320, 240, 1, 1))
 model.compile(optimizer="adam", loss=MeanSquaredError(), metrics="acc")  # https://machinelearningmastery.com/loss-functions-in-tensorflow/
-print(model.summary())
+(x_train, y_train), (x_test, y_test) = train_test_split(features, labels)
+model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
+
+# Kak dobimo "poravnano" sliko?
+# Katero matriko uporabljamo?
