@@ -15,6 +15,8 @@ from tensorflow.keras.utils import split_dataset
 from os.path import isfile, join
 from os import listdir
 import copy
+from sklearn.model_selection import train_test_split
+
 RazrediKlasifikacija = [-16, -14.4, -12.9, -11.4, -9.60, -8.3, -6.8, -5.3, -3.8, -2.3, -0.8,  0.8, 2.3, 3.8, 5.3, 6.8, 8.3, 9.9, 11.43, 12.9, 14.4, 16.0]
 
 # Pitati asistenta za pomoć s tom greškom
@@ -29,6 +31,7 @@ RazrediKlasifikacija = [-16, -14.4, -12.9, -11.4, -9.60, -8.3, -6.8, -5.3, -3.8,
 
 NumpySeznamSlikSpremenjenih = []
 NumpySeznamSlikNormalnih = []
+
 # TODO: Sivinska slika s 3 kanale
 # TODO: Slika je še vedno samo ena
 # TODO: Uporabiti flatten za zadnji sloj?
@@ -36,6 +39,7 @@ NumpySeznamSlikNormalnih = []
 Direktorij = "E:/Sivinske2014/"
 SeznamDatotek = [f for f in listdir(Direktorij) if isfile(join(Direktorij, f))]
 SeznamPoti = [Direktorij + f for f in SeznamDatotek]
+
 
 def UstvariOneHotVektor(SeznamZamikov):
 	Matrika = [[0] * 21] * 8  # matrika velikost 8 x 21
@@ -46,14 +50,13 @@ def UstvariOneHotVektor(SeznamZamikov):
 				OneHotVektor = [0] * 21
 				OneHotVektor[i] = 1
 			Matrika[j] = OneHotVektor
-		# print(Matrika[j])
 	return Matrika
 
 features = []
 labels = []
 
-features = np.array(features)
-labels = np.array(labels)
+features = np.empty((len(SeznamPoti), 64, 64, 2))
+labels = np.empty((len(SeznamPoti), 21, 8))
 
 for PotDoSlike in SeznamPoti[:10]:
 	RGBSivinskaSlika = cv2.imread(PotDoSlike)
@@ -141,33 +144,28 @@ for PotDoSlike in SeznamPoti[:10]:
 	# VhodNormalnaSlika = cv2.resize(VhodNormalnaSlika, (320, 240), cv2.INTER_LINEAR)
 	# VhodPopacanaSlika = cv2.resize(VhodPopacanaSlika, (320, 240), cv2.INTER_LINEAR)
 
-	cv2.imshow('Vhod v NN - Normalna', SlikaZaBarvanjeOriginalna)
-	cv2.imshow('Vhod v NN - Popacana', SlikaZaBarvanjePopacana)
+	# cv2.imshow('Vhod v NN - Normalna', SlikaZaBarvanjeOriginalna)
+	# cv2.imshow('Vhod v NN - Popacana', SlikaZaBarvanjePopacana)
 
 	SkupnaSlika = np.concatenate((VhodNormalnaSlika, VhodPopacanaSlika), 1)  # SivinskaSlika = cv2.cvtColor(SivinskaSlika, cv2.COLOR_BGR2GRAY)
 	SkupnaSlika = tensorflow.reshape(SkupnaSlika, [64, 64, 2])
 
 	UcnaMatrika = UstvariOneHotVektor(SeznamZamikov=[X1Zamik, Y1Zamik, X2Zamik, Y2Zamik, X3Zamik, Y3Zamik, X4Zamik, Y4Zamik])
 
-	np.append(features, SkupnaSlika)
-	np.append(labels, UcnaMatrika)
+	numpy.append(features, SkupnaSlika)
+	numpy.append(labels, UcnaMatrika)
 
-
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+	# features.append(SkupnaSlika)
+	# labels.append(UcnaMatrika)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
 
 	# im_out = cv2.warpPerspective(SivinskaSlika, h, (im_dst.shape[1], im_dst.shape[0]))
 
 
 
-print(features.shape)
 inputShape = (64, 64, 2)
-
-VhodPrvaVeja = keras.layers.Input(shape=inputShape)  # 1. Resnet blok
-PolnoPovezanSlojKlasifikacija = Dense(168)(VhodPrvaVeja)
-Reshape = tensorflow.reshape(PolnoPovezanSlojKlasifikacija, [8, 21])
-Softmax = tensorflow.nn.softmax()
-
+VhodPrvaVeja = keras.layers.Input(shape=inputShape)
 AlternativnaKonvolucija1 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(VhodPrvaVeja)
 PrvaKonvolucija1 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(VhodPrvaVeja)
 PrviResnetDropOut1 = Dropout(0.5)(PrvaKonvolucija1)
@@ -186,12 +184,10 @@ ZadnjaKonvolucija2 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.
 DropoutIzhodPrveVeje2 = Dropout(0.5)(ZadnjaKonvolucija2)
 SestevekAlternativa2 = Add()([DropoutIzhodPrveVeje2, AlternativnaKonvolucija2])
 KoncniSestevek2 = relu(PrviResnetDropOut2)
+PoolingSloj1 = MaxPool2D()(KoncniSestevek2)
 
-PoolingSloj = MaxPool2D()(KoncniSestevek2)
-
-# 3. Resnet blok
-AlternativnaKonvolucija3 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
-PrvaKonvolucija3 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
+AlternativnaKonvolucija3 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj1)
+PrvaKonvolucija3 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj1)
 PrviResnetDropOut3 = Dropout(0.5)(PrvaKonvolucija3)
 DrugiResnet3 = relu(PrviResnetDropOut3)  # TODO: ReLu sloj?
 ZadnjaKonvolucija3 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(DrugiResnet3)
@@ -200,21 +196,21 @@ SestevekAlternativa3 = Add()([DropoutIzhodPrveVeje3, AlternativnaKonvolucija3])
 KoncniSestevek3 = relu(PrviResnetDropOut3)
 
 # 4. Resnet blok
-AlternativnaKonvolucija4 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(KoncniSestevek1)
-PrvaKonvolucija4 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(KoncniSestevek1)
+AlternativnaKonvolucija4 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(KoncniSestevek3)
+PrvaKonvolucija4 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(KoncniSestevek3)
 PrviResnetDropOut4 = Dropout(0.5)(PrvaKonvolucija4)
 DrugiResnet4 = relu(PrviResnetDropOut4)  # TODO: ReLu sloj?
 ZadnjaKonvolucija4 = Conv2D(64, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(DrugiResnet4)
 DropoutIzhodPrveVeje4 = Dropout(0.5)(ZadnjaKonvolucija4)
 SestevekAlternativa4 = Add()([DropoutIzhodPrveVeje4, AlternativnaKonvolucija4])
 KoncniSestevek4 = relu(PrviResnetDropOut4)
+PoolingSloj2 = MaxPool2D()(KoncniSestevek4)
 
-PoolingSloj = MaxPool2D()(KoncniSestevek4)
-
+# // Napaka
 # 5. Resnet blok
 # VhodPrvaVeja = keras.layers.Input(shape=inputShape)(KoncniSestevek2)
-AlternativnaKonvolucija5 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
-PrvaKonvolucija5 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
+AlternativnaKonvolucija5 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj2)
+PrvaKonvolucija5 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj2)
 PrviResnetDropOut5 = Dropout(0.5)(PrvaKonvolucija5)
 DrugiResnet5 = relu(PrviResnetDropOut5)  # TODO: ReLu sloj?
 ZadnjaKonvolucija5 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(DrugiResnet5)
@@ -232,10 +228,12 @@ DropoutIzhodPrveVeje6 = Dropout(0.5)(ZadnjaKonvolucija6)
 SestevekAlternativa6 = Add()([DropoutIzhodPrveVeje6, AlternativnaKonvolucija6])
 KoncniSestevek6 = relu(PrviResnetDropOut6)
 
-PoolingSloj = MaxPool2D()(KoncniSestevek6)
+PoolingSloj3 = MaxPool2D()(KoncniSestevek6)
 
-AlternativnaKonvolucija7 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
-PrvaKonvolucija7 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj)
+
+AlternativnaKonvolucija7 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj3)
+PrvaKonvolucija7 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(PoolingSloj3)
+
 PrviResnetDropOut7 = Dropout(0.5)(PrvaKonvolucija7)
 DrugiResnet7 = relu(PrviResnetDropOut7)  # TODO: ReLu sloj?
 ZadnjaKonvolucija7 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations.relu, padding="same")(DrugiResnet7)
@@ -251,12 +249,23 @@ ZadnjaKonvolucija8 = Conv2D(128, (3, 3), activation=tensorflow.keras.activations
 DropoutIzhodPrveVeje8 = Dropout(0.5)(ZadnjaKonvolucija8)
 SestevekAlternativa8 = Add()([DropoutIzhodPrveVeje8, AlternativnaKonvolucija8])
 KoncniSestevek8 = relu(PrviResnetDropOut8)
-# rehspae
-PolnoPovezanSloj = Dense(512)(KoncniSestevek8)
-print(PolnoPovezanSloj.shape)
 
-# regresijska glava
-PolnoPovezanSlojRegresija = Dense(8)(KoncniSestevek8)
+Reshape = tensorflow.keras.layers.Reshape((8192,))(KoncniSestevek8)
+# Reshape = tensorflow.keras.layers.Reshape(KoncniSestevek8, output_shape=(8192,))
+PolnoPovezanSloj = Dense(512)(Reshape)
+
+# VhodPrvaVeja = keras.layers.Input(shape=inputShape)  # 1. Resnet blok
+PolnoPovezanSlojKlasifikacija = Dense(168)(PolnoPovezanSloj)
+# Reshape = tensorflow.reshape(PolnoPovezanSlojKlasifikacija, [8, 21])
+Reshape = tensorflow.keras.layers.Reshape((8, 21))(PolnoPovezanSlojKlasifikacija)
+Softmax = tensorflow.nn.softmax(Reshape)
+
+
+# rehspae
+# PolnoPovezanSloj = Dense(512)(KoncniSestevek8)
+#
+# # regresijska glava
+# PolnoPovezanSlojRegresija = Dense(8)(KoncniSestevek8)
 
 # klasifikacijska glava
 
@@ -266,9 +275,18 @@ model = keras.Model(
 	outputs=[PolnoPovezanSloj],
 )
 
-model.build(input_shape=(320, 240, 1, 1))
+# labels = np.expand_dims(labels, axis=-1)
+
+model.build(input_shape=inputShape)
 model.compile(optimizer="adam", loss=MeanSquaredError(), metrics="acc")  # https://machinelearningmastery.com/loss-functions-in-tensorflow/
-(x_train, y_train), (x_test, y_test) = train_test_split(features, labels)
+
+# features = numpy.squeeze(features, axis=1)
+# labels = numpy.squeeze(labels, axis=1)
+
+print(features.shape)
+print(labels.shape)
+
+(x_train, y_train), (x_test, y_test) = train_test_split(labels, features)
 model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
 
 # Kak dobimo "poravnano" sliko?

@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0982c57c-e424-4762-b186-87fc6f47a294" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -143,6 +142,11 @@
       <workItem from="1699652423104" duration="1780000" />
       <workItem from="1700068188538" duration="4578000" />
       <workItem from="1700157389047" duration="9462000" />
+      <workItem from="1700173244111" duration="39000" />
+      <workItem from="1700226886348" duration="4904000" />
+      <workItem from="1700853525164" duration="3868000" />
+      <workItem from="1700874848776" duration="4107000" />
+      <workItem from="1700909692653" duration="2076000" />
     </task>
     <task id="LOCAL-00001" summary="Prvi commit">
       <created>1699136222452</created>
@@ -151,7 +155,14 @@
       <option name="project" value="LOCAL" />
       <updated>1699136222452</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Prvi commit">
+      <created>1700173268410</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1700173268410</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -162,7 +173,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="Prvi commit" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Vaja_1_Homografija$main.coverage" NAME="main Coverage Results" MODIFIED="1700172844497" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Vaja_1_Homografija$main.coverage" NAME="main Coverage Results" MODIFIED="1700912221282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Vaja_1_Homografija$IzdelavaUcneMnozice.coverage" NAME="IzdelavaUcneMnozice Coverage Results" MODIFIED="1698340681955" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
